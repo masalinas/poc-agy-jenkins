@@ -2,65 +2,59 @@
 PoC Antigravity CLI inside Jenkins Pipeline
 
 ## Pipeline
-This is a sample jenkins pipeline wher integrate antigravity CLI inside a stage to review our code. We must configure OPENAI_API_BASE and OPENAI_API_KEY
+This is a sample jenkins pipeline wher integrate antigravity CLI inside a stage to review our code. We must configure GEMINI_API_KEY from out Google AI Studio:
 
 ```shell
 pipeline {
     agent {
         docker { 
             image 'node:22-alpine' 
-            // Instalamos git en el contenedor alpine para que Jenkins pueda hacer el clone
             args '-u root:root' 
         }
     }
     environment {
+        // Inject the official Gemini key from Jenkins credentials manager
         GEMINI_API_KEY = credentials('gemini-api-key')
     }
     stages {
-        stage('Preparar Entorno') {
+        stage('Prepare Environment') {
             steps {
-                // Alpine base no trae git, es necesario para el step 'git' de Jenkins
                 sh 'apk add --no-cache git'
             }
         }
-        stage('Clonar Repositorio Ficticio') {
+        stage('Clone Dummy Repository') {
             steps {
-                // Clonación del código fuente. Si fuera privado, añadirías: credentialsId: 'tus-credenciales-git'
                 git branch: 'main', url: 'https://github.com/veradoc-demo/core-backend-ficticio.git'
-                
-                // Verificación rápida en los logs para confirmar que el código bajó correctamente
-                sh 'ls -la'
             }
         }
-        stage('Instalar Antigravity CLI') {
+        stage('Install Antigravity CLI') {
             steps {
                 sh 'npm install -g @antigravity/cli'
-                sh 'agy --version'
             }
         }
-        stage('Code Review con agy (Gemini API)') {
+        stage('Code Review with agy (Gemini API)') {
             steps {
-                // Ejecutamos agy. Al detectar la variable GEMINI_API_KEY, 
-                // utilizará el motor de Google. Puedes forzar el modelo exacto si la CLI lo requiere.
+                // Execute agy. By detecting the GEMINI_API_KEY variable, 
+                // it will use the Google engine. You can force the exact model if the CLI requires it.
                 sh '''
-                agy --model gemini-1.5-pro "Analiza todo el código fuente del directorio actual. Compara la implementación con los requisitos técnicos definidos en el archivo 'spec.md' o 'constitution.md' de la raíz. Si detectas funciones sin tests unitarios, uso de dependencias no autorizadas, o violaciones de la arquitectura, finaliza el proceso inmediatamente con exit code 1. Si el código cumple la especificación al 100%, finaliza con exit code 0."
+                agy --model gemini-1.5-pro "Analyze all the source code in the current directory. Compare the implementation with the technical requirements defined in the 'spec.md' or 'constitution.md' file in the root. If you detect functions without unit tests, use of unauthorized dependencies, or architecture violations, exit the process immediately with exit code 1. If the code meets the specification 100%, exit with exit code 0."
                 '''
             }
         }
-        stage('Build & Deploy (Simulado)') {
+        stage('Build & Deploy (Simulated)') {
             steps {
-                echo 'El código ha pasado la validación de la IA. Procediendo con el empaquetado...'
+                echo 'Code has passed Gemini validation. Proceeding with packaging...'
             }
         }
     }
     post {
         failure {
-            echo '❌ Pipeline abortado: La IA de Antigravity detectó violaciones en el código (Code Review fallido).'
+            echo '❌ Pipeline aborted: Gemini detected code violations (Code Review failed).'
         }
         success {
-            echo '✅ Pipeline completado: El código fue auditado por la IA y superó los estándares.'
+            echo '✅ Pipeline completed: The code was audited by Gemini and passed all standards.'
         }
-        cleanWs() // Limpia el workspace al finalizar para no dejar restos del repo en el nodo
+        cleanWs()
     }
 }
 ```
