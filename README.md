@@ -14,9 +14,7 @@ pipeline {
         }
     }
     environment {
-        // Enrutamiento a tu infraestructura local (LiteLLM/Ollama)
-        OPENAI_API_BASE = 'http://tu-servidor-litellm:4000'
-        OPENAI_API_KEY = credentials('litellm-local-key')
+        GEMINI_API_KEY = credentials('gemini-api-key')
     }
     stages {
         stage('Preparar Entorno') {
@@ -40,11 +38,12 @@ pipeline {
                 sh 'agy --version'
             }
         }
-        stage('Code Review con agy (SDD Gate)') {
+        stage('Code Review con agy (Gemini API)') {
             steps {
-                // El workspace actual (./) ya contiene el código clonado en el stage anterior
+                // Ejecutamos agy. Al detectar la variable GEMINI_API_KEY, 
+                // utilizará el motor de Google. Puedes forzar el modelo exacto si la CLI lo requiere.
                 sh '''
-                agy "Analiza todo el código fuente del directorio actual. Compara la implementación con los requisitos técnicos definidos en el archivo 'spec.md' o 'constitution.md' de la raíz. Si detectas funciones sin tests unitarios, uso de dependencias no autorizadas, o violaciones de la arquitectura, finaliza el proceso inmediatamente con exit code 1. Si el código cumple la especificación al 100%, finaliza con exit code 0."
+                agy --model gemini-1.5-pro "Analiza todo el código fuente del directorio actual. Compara la implementación con los requisitos técnicos definidos en el archivo 'spec.md' o 'constitution.md' de la raíz. Si detectas funciones sin tests unitarios, uso de dependencias no autorizadas, o violaciones de la arquitectura, finaliza el proceso inmediatamente con exit code 1. Si el código cumple la especificación al 100%, finaliza con exit code 0."
                 '''
             }
         }
